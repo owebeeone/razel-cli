@@ -1,0 +1,12 @@
+[package]
+name = "razel-cli"
+version = "0.1.0"
+edition = "2021"
+description = "razelv4 client: argument surface + rendering, a PURE protocol client over razel-comms (role: client — gate G7: may link ONLY the pinned client closure). SKELETON."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# The ENTIRE dependency universe of this crate is the CLIENT_CLOSURE pinned in tools/dep_wall.py:
+razel-comms = { path = "../razel-comms", version = "0.1.0" }
+razel-wire-api = { path = "../razel-wire-api", version = "0.1.0" }
+razel-wire-cbor = { path = "../razel-wire-cbor", version = "0.1.0" }  # the ONE impl a client may touch (codec; ratified §5 item 6)
