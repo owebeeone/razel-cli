@@ -25,11 +25,29 @@ pub fn default_codec() -> CborCodec {
     CborCodec
 }
 
-/// Parse an argv surface into a protocol `Request`. SKELETON: `ping [text…]` → Text IR.
+// The protocol wire tags for a request (int-keyed per the wire IR — a rename never moves bytes). The client
+// emits PLAIN DATA: it names a verb + operands, never an engine/host type. The daemon (the composition
+// root) interprets these tags and runs the build; this crate stays inside CLIENT_CLOSURE (G7).
+/// Field tag 0: the verb string (e.g. `"build"`, `"ping"`).
+pub const REQ_VERB: i64 = 0;
+/// Field tag 1: the build verb's target-pattern operand (e.g. `"//hello:out.txt"`).
+pub const REQ_TARGET_PATTERN: i64 = 1;
+
+/// Parse an argv surface into a protocol `Request`. `ping [text…]` → Text IR (skeleton). `build <pattern>`
+/// → an int-keyed `Map` request carrying the verb + the single target pattern — engine-blind DATA the
+/// daemon interprets. Fail-closed: `build` with no pattern, or with extra args, is an `UnknownCommand`-class
+/// usage error (v1 builds exactly one pattern).
 pub fn parse_request(args: &[String]) -> Result<Request, CliError> {
     match args.split_first() {
         None => Ok(Request(WireValue::Null)),
         Some((verb, rest)) if verb == "ping" => Ok(Request(WireValue::Text(rest.join(" ")))),
+        Some((verb, rest)) if verb == "build" => match rest {
+            [pattern] => Ok(Request(WireValue::Map(vec![
+                (REQ_VERB, WireValue::Text("build".to_string())),
+                (REQ_TARGET_PATTERN, WireValue::Text(pattern.clone())),
+            ]))),
+            _ => Err(CliError::UnknownCommand(format!("build expects exactly one target pattern, got {}", rest.len()))),
+        },
         Some((verb, _)) => Err(CliError::UnknownCommand(verb.clone())),
     }
 }
@@ -74,9 +92,30 @@ mod tests {
     fn unknown_verb_fails_closed() {
         let t = echo();
         assert_eq!(
-            run_call(&t, &["build".into()]),
-            Err(CliError::UnknownCommand("build".into()))
+            run_call(&t, &["frobnicate".into()]),
+            Err(CliError::UnknownCommand("frobnicate".into()))
         );
+    }
+
+    #[test]
+    fn build_parses_to_engine_blind_data() {
+        // The client emits PLAIN wire DATA for `build <pattern>` — a verb + a pattern operand, no engine
+        // type in sight (the whole crate stays within CLIENT_CLOSURE). The daemon interprets these tags.
+        let req = parse_request(&["build".into(), "//hello:out.txt".into()]).expect("build parses");
+        assert_eq!(
+            req.0,
+            WireValue::Map(vec![
+                (REQ_VERB, WireValue::Text("build".into())),
+                (REQ_TARGET_PATTERN, WireValue::Text("//hello:out.txt".into())),
+            ])
+        );
+    }
+
+    #[test]
+    fn build_without_pattern_fails_closed() {
+        let t = echo();
+        assert!(matches!(run_call(&t, &["build".into()]), Err(CliError::UnknownCommand(_))),
+            "build with no target pattern is a fail-closed usage error");
     }
 
     #[test]
