@@ -1,0 +1,24 @@
+# razel-cli/BUILD.bazel — THE SELF-HOST HEADLINE TARGET: `razel build //razel-cli:razel` (razel building its
+# own CLI binary). Declared with the TRUE graph; currently BLOCKED one hop down: //razel-comms:razel_comms
+# carries the taut-shape external-path fork (see razel-comms/BUILD.bazel), so this build stops there with a
+# typed error until that fork is resolved (ADR-0011). The deepest fully-in-workspace proof meanwhile is
+# `//razel-wire-cbor:razel_wire_cbor` (razel-host/tests/self_host.rs — the transitive multi-crate chain).
+load("//rules/rust:rust.bzl", "rust_binary", "rust_library")
+
+# cli-as-LIBRARY (the ratified --batch multi-call shape links this from razel-daemon).
+rust_library(
+    name = "razel_cli",
+    srcs = ["src/lib.rs"],
+    deps = [
+        "//razel-comms:razel_comms",  # ← blocked on the taut-shape fork
+        "//razel-wire-api:razel_wire_api",
+        "//razel-wire-cbor:razel_wire_cbor",
+    ],
+)
+
+# The thin standalone bin (gate G7's link-closure proof shape).
+rust_binary(
+    name = "razel",
+    srcs = ["src/main.rs"],
+    deps = [":razel_cli"],
+)
