@@ -1,8 +1,9 @@
-# razel-cli/BUILD.bazel — THE SELF-HOST HEADLINE TARGET: `razel build //razel-cli:razel` (razel building its
-# own CLI binary). Declared with the TRUE graph; currently BLOCKED one hop down: //razel-comms:razel_comms
-# carries the taut-shape external-path fork (see razel-comms/BUILD.bazel), so this build stops there with a
-# typed error until that fork is resolved (ADR-0011). The deepest fully-in-workspace proof meanwhile is
-# `//razel-wire-cbor:razel_wire_cbor` (razel-host/tests/self_host.rs — the transitive multi-crate chain).
+# razel-cli/BUILD.bazel — the razelv4 CLIENT crate: cli-as-LIBRARY (`razel_cli`, linked by razel-daemon) plus a
+# thin standalone stub bin (`razel_client_stub`). The SHIPPED product binary is `//razel-daemon`'s `razel`
+# (client + daemon multi-call, like bazel) — NOT anything here; this stub only proves the client link-closure
+# (gate G7) and must never masquerade as the product. `razel build //razel-cli:razel_client_stub` builds
+# through the real external taut-shape root (razel-comms → @taut-shape//:taut_shape); the deepest
+# fully-in-workspace proof is `//razel-wire-cbor:razel_wire_cbor` (razel-host/tests/self_host.rs).
 load("//rules/rust:rust.bzl", "rust_binary", "rust_library")
 
 # cli-as-LIBRARY (the ratified --batch multi-call shape links this from razel-daemon).
@@ -10,15 +11,16 @@ rust_library(
     name = "razel_cli",
     srcs = ["src/lib.rs"],
     deps = [
-        "//razel-comms:razel_comms",  # ← blocked on the taut-shape fork
+        "//razel-comms:razel_comms",
         "//razel-wire-api:razel_wire_api",
         "//razel-wire-cbor:razel_wire_cbor",
     ],
+    visibility = ["//visibility:public"],  # T19-P3: consumed cross-package by //razel-daemon (cli-as-library)
 )
 
-# The thin standalone bin (gate G7's link-closure proof shape).
+# The thin standalone client STUB bin (gate G7's link-closure proof shape) — NOT the shipped `razel` product.
 rust_binary(
-    name = "razel",
+    name = "razel_client_stub",
     srcs = ["src/main.rs"],
     deps = [":razel_cli"],
 )

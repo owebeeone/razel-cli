@@ -5,6 +5,12 @@ edition = "2021"
 description = "razelv4 client: argument surface + rendering, a PURE protocol client over razel-comms (role: client — gate G7: may link ONLY the pinned client closure). SKELETON."
 license = "MIT OR Apache-2.0"
 
+# The standalone stub bin is `razel-client-stub`, NOT `razel` — the shipped `razel` product bin lives in
+# razel-daemon (T18). Two bins named `razel` (here + daemon) was the confusion; this crate's bin is the stub.
+[[bin]]
+name = "razel-client-stub"
+path = "src/main.rs"
+
 [dependencies]
 # The ENTIRE dependency universe of this crate is the CLIENT_CLOSURE pinned in tools/dep_wall.py:
 razel-comms = { path = "../razel-comms", version = "0.1.0" }

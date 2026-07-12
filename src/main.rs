@@ -6,6 +6,7 @@
 fn main() {
     let _codec = razel_cli::default_codec();
     println!(
-        "razel-cli skeleton: no socket transport yet — use the razel-daemon multi-call binary (the ratified --batch shape)."
+        "razel-cli skeleton: the standalone client stub links the closure and nothing else — use the `razel` \
+         binary (one client+daemon multi-call, like bazel): `razel build <pattern>`."
     );
 }
